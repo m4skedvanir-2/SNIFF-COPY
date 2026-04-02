@@ -1,0 +1,407 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #b9bbd3;
+  --surface:   #ffffff;
+  --border:    #e2e5ea;
+  --text:      #1a1d23;
+  --muted:     #6b7280;
+  --accent:    #2563eb;
+
+  --red-bg:    #fff1f1;
+  --red-bd:    #fca5a5;
+  --red-text:  #b91c1c;
+
+  --ora-bg:    #fff7ed;
+  --ora-bd:    #fdba74;
+  --ora-text:  #c2410c;
+
+  --yel-bg:    #fefce8;
+  --yel-bd:    #fde047;
+  --yel-text:  #92400e;
+}
+
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ヘッダー */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  transition: background 0.3s, border-color 0.3s;
+}
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+.logo span { color: var(--accent); transition: color 0.3s; }
+.tagline {
+  font-size: 12px;
+  color: var(--muted);
+  transition: color 0.3s;
+}
+
+/* 広告スロット（上部バナー 728x90） */
+.ad-top {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 90px;
+}
+.ad-placeholder {
+  width: 728px;
+  height: 90px;
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+/* メインレイアウト（左右2カラム） */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+/* パネル共通 */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.panel-header .actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ドロップゾーン */
+.dropzone {
+  margin: 12px;
+  border: 2px dashed var(--border);
+  border-radius: 6px;
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, opacity 0.3s;
+}
+.dropzone:hover,
+.dropzone.dragover {
+  border-color: var(--accent);
+  background: #eff6ff;
+  color: var(--accent);
+}
+.dropzone-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+
+/* 行番号付きエディタ */
+.editor-wrap {
+  display: flex;
+  margin: 0 12px 12px;
+  height: 340px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color .15s;
+  background: #fafafa;
+}
+.editor-wrap:focus-within {
+  border-color: var(--accent);
+  background: #fff;
+}
+
+/* 行番号列 */
+.line-numbers {
+  flex-shrink: 0;
+  width: 40px;
+  padding: 10px 6px;
+  background: #f1f5f9;
+  border-right: 1px solid var(--border);
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #94a3b8;
+  text-align: right;
+  overflow: hidden;
+  user-select: none;
+}
+.line-numbers span { display: block; }
+
+/* テキスト入力エリア */
+textarea {
+  flex: 1;
+  height: 100%;
+  resize: none;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  border: none;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: pre;
+}
+textarea::placeholder { color: #9ca3af; white-space: pre-wrap; }
+
+/* ボタン */
+.btn {
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity .15s, background 0.3s, color 0.3s;
+}
+.btn:hover { opacity: .8; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-ghost   { background: transparent; border-color: var(--border); color: var(--muted); }
+
+/* 検出結果エリア */
+.results-body {
+  padding: 12px;
+  height: 440px;
+  overflow-y: auto;
+}
+
+/* 結果なし・空状態 */
+.empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  gap: 6px;  transition: color 0.3s;}
+.empty-state-icon { font-size: 32px; }
+.empty-state p { font-size: 13px; }
+
+/* 件数サマリーバッジ */
+.summary-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.badge {
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid;
+}
+.badge-red    { background: var(--red-bg); border-color: var(--red-bd); color: var(--red-text); }
+.badge-orange { background: var(--ora-bg); border-color: var(--ora-bd); color: var(--ora-text); }
+.badge-yellow { background: var(--yel-bg); border-color: var(--yel-bd); color: var(--yel-text); }
+
+/* 検出結果カード */
+.finding {
+  border: 1px solid;
+  border-radius: 0;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.finding-red    { background: var(--red-bg); border-color: var(--red-bd); }
+.finding-orange { background: var(--ora-bg); border-color: var(--ora-bd); }
+.finding-yellow { background: var(--yel-bg); border-color: var(--yel-bd); }
+
+.finding-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.finding-label {
+  font-weight: 600;
+  flex: 1;
+}
+.finding-label.red    { color: var(--red-text); }
+.finding-label.orange { color: var(--ora-text); }
+.finding-label.yellow { color: var(--yel-text); }
+
+.finding-line {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.finding-context {
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 11px;
+  color: #374151;
+  background: rgba(0,0,0,.04);
+  border-radius: 3px;
+  padding: 3px 6px;
+  word-break: break-all;
+}
+
+/* 凡例 */
+.legend {
+  max-width: 1200px;
+  margin: 0 auto 16px;
+  padding: 0 20px;
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-red    { background: #ef4444; }
+.dot-orange { background: #f97316; }
+.dot-yellow { background: #eab308; }
+
+/* 安全性の案内 */
+.notice {
+  max-width: 1200px;
+  margin: 0 auto 20px;
+  padding: 0 20px;
+}
+.notice-inner {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #b91c1c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+
+/* フッター */
+footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+}
+
+/* スクロールバー（細め） */
+.results-body::-webkit-scrollbar { width: 4px; }
+.results-body::-webkit-scrollbar-track { background: transparent; }
+.results-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; transition: background 0.3s; }
+
+/* ダークモード */
+body.dark-mode {
+  --bg: #0f0f0f;
+  --surface: #111;
+  --border: #333;
+  --text: #fff;
+  --muted: #ccc;
+  --accent: #0066ff;
+  --red-bg: #300;
+  --red-bd: #600;
+  --red-text: #f00;
+  --ora-bg: #330;
+  --ora-bd: #660;
+  --ora-text: #f60;
+  --yel-bg: #330;
+  --yel-bd: #660;
+  --yel-text: #ff0;
+}
+
+body.dark-mode .panel, body.dark-mode header, body.dark-mode .ad-top, body.dark-mode footer {
+  background: var(--surface);
+  border-color: var(--accent);
+}
+
+body.dark-mode .logo, body.dark-mode .tagline, body.dark-mode footer {
+  color: var(--text);
+}
+
+body.dark-mode .dropzone {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+body.dark-mode .dropzone:hover, body.dark-mode .dropzone.dragover {
+  border-color: var(--accent);
+  background: rgba(0,102,255,0.1);
+}
+
+body.dark-mode .notice-inner {
+  background: #300;
+  border-color: #600;
+  color: #f00;
+}
+
+/* 検出中 */
+body.detecting .logo span {
+  color: red;
+}
+
+/* 開発者モード */
+.dev-mode .dropzone {
+  font-family: monospace;
+}
+
+.dev-mode .panel-header {
+  font-family: monospace;
+}
+
+.dev-mode .tagline {
+  font-family: monospace;
+}
+
+.dev-mode .empty-state p {
+  font-family: monospace;
+}
+
+.dev-mode .finding-label {
+  font-family: monospace;
+}
+
+.dev-mode .finding-context {
+  font-family: monospace;
+}

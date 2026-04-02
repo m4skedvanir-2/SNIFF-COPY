@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SNIFF^^COPY</title>
+  <meta name="description" content="コードやテキストに混入したAPIキー・パスワード・シークレットをブラウザ完結で検出します。サーバー送信ゼロ。">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="#">SNIFF<span>^^</span>copy</a>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <button class="btn btn-ghost" id="dark-toggle" title="ダークモード">🌙</button>
+    <button class="btn btn-ghost" id="dev-toggle" title="開発者モード">👨‍💻</button>
+    <span class="tagline">APIキー・シークレット漏洩チェッカー</span>
+  </div>
+</header>
+
+<!-- 広告: 上部バナー (728x90) -->
+<!-- IGNORE: 広告スペース --->
+<!--  
+<div class="ad-top">
+  <div class="ad-placeholder">広告 (728×90)</div>
+</div>
+-->
+<div class="notice" style="margin-top:16px;">
+  <div class="notice-inner">
+    <span id="notice-icon">&#x1F6E1;</span>
+    <span id="notice-text">入力したデータはすべてブラウザ内で処理されます。サーバーへの送信は一切ありません。</span>
+  </div>
+</div>
+
+<!-- 凡例 -->
+<div class="legend">
+  <span class="legend-item"><span class="legend-dot dot-red"></span><span class="legend-red">確定（既知のAPIキー形式）</span></span>
+  <span class="legend-item"><span class="legend-dot dot-orange"></span><span class="legend-orange">要確認（シークレット変数への代入）</span></span>
+  <span class="legend-item"><span class="legend-dot dot-yellow"></span><span class="legend-yellow">疑わしい（長いランダム文字列）</span></span>
+</div>
+
+<!-- メインエリア -->
+<div class="main">
+
+  <!-- 左: 入力パネル -->
+  <div class="panel">
+    <div class="panel-header">
+      <span id="label-input">入力</span>
+      <div class="actions">
+        <button class="btn btn-ghost" id="btn-clear"><span id="label-clear">クリア</span></button>
+        <button class="btn btn-primary" id="btn-scan"><span id="label-scan">スキャン</span></button>
+      </div>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      <span class="dropzone-icon" id="dropzone-icon">&#x1F4C2;</span>
+      <span id="dropzone-text">ファイルをドロップ、またはクリックして選択</span>
+    </div>
+    <input type="file" id="file-input" style="display:none" accept="*/*">
+
+    <!-- 行番号付きエディタ -->
+    <div class="editor-wrap">
+      <div class="line-numbers" id="line-numbers"><span>1</span></div>
+      <textarea id="input-text" wrap="off"
+        placeholder="コード、.envファイル、ログなどを貼り付けてください&#10;&#10;例：&#10;OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx&#10;password='hunter2'"></textarea>
+    </div>
+  </div>
+
+  <!-- 右: 検出結果パネル -->
+  <div class="panel">
+    <div class="panel-header">
+      <span id="label-output">検出結果</span>
+      <div id="result-summary"></div>
+    </div>
+    <div class="results-body" id="results">
+      <div class="empty-state">
+        <span class="empty-state-icon">&#x1F50D;</span>
+        <p>テキストを入力してスキャンを実行してください</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  SNIFF^^COPY &mdash; ブラウザ完結のシークレット漏洩チェッカー &nbsp;|&nbsp; データは送信されません<br>
+  <span style="font-size:10px;">&copy; 2026 m4skedvanir</span>
+</footer>
+
+<script src="detector.js"></script>
+<script>
+  const inputEl     = document.getElementById("input-text");
+  const dropzone    = document.getElementById("dropzone");
+  const fileInput   = document.getElementById("file-input");
+  const resultsEl   = document.getElementById("results");
+  const summaryEl   = document.getElementById("result-summary");
+  const lineNumsEl  = document.getElementById("line-numbers");
+  const darkToggle  = document.getElementById("dark-toggle");
+  const devToggle   = document.getElementById("dev-toggle");
+  
+  /* 行番号の更新とスクロール同期 */
+  function updateLineNumbers() {
+    const count = inputEl.value.split("\n").length;
+    lineNumsEl.innerHTML = Array.from({ length: count }, (_, i) =>
+      `<span>${i + 1}</span>`
+    ).join("");
+    lineNumsEl.scrollTop = inputEl.scrollTop;
+  }
+  inputEl.addEventListener("scroll", () => {
+    lineNumsEl.scrollTop = inputEl.scrollTop;
+  });
+
+  /* リアルタイムスキャン（400ms debounce） */
+  let scanTimer;
+  function debouncedScan() {
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(runScan, 400);
+  }
+
+  /* ファイル選択・ドロップ */
+  dropzone.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", e => loadFile(e.target.files[0]));
+
+  dropzone.addEventListener("dragover", e => { e.preventDefault(); dropzone.classList.add("dragover"); });
+  dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+  dropzone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+  });
+
+  function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      inputEl.value = e.target.result;
+      updateLineNumbers();
+      dropzone.style.display = "none";
+      runScan();
+    };
+    reader.readAsText(file);
+  }
+
+  /* 入力時：行番号更新 + リアルタイムスキャン + ドロップゾーン切り替え */
+  inputEl.addEventListener("input", () => {
+    updateLineNumbers();
+    debouncedScan();
+    dropzone.style.display = inputEl.value ? "none" : "";
+  });
+
+  /* スキャン実行 */
+  document.getElementById("btn-scan").addEventListener("click", runScan);
+  document.getElementById("btn-clear").addEventListener("click", () => {
+    inputEl.value = "";
+    updateLineNumbers();
+    renderEmpty();
+    dropzone.style.display = "";
+    document.body.classList.remove("detecting");
+  });
+
+  /* ダークモードトグル */
+  darkToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    darkToggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+  });
+
+  /* 開発者モードトグル */
+  const UI = {
+    normal: {
+      notice:       "入力したデータはすべてブラウザ内で処理されます。サーバーへの送信は一切ありません。",
+      noticeIcon:   "🛡️",
+      input:        "入力",
+      output:       "検出結果",
+      clear:        "クリア",
+      scan:         "スキャン",
+      dropzone:     "ファイルをドロップ、またはクリックして選択",
+      dropzoneIcon: "📂",
+      placeholder:  "コード、.envファイル、ログなどを貼り付けてください\n\n例：\nOPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx\npassword='hunter2'",
+      legendRed:    "確定（既知のAPIキー形式）",
+      legendOrange: "要確認（シークレット変数への代入）",
+      legendYellow: "疑わしい（長いランダム文字列）",
+      empty:        "テキストを入力してスキャンを実行してください",
+      emptyIcon:    "🔍",
+      clean:        "検出なし。問題は見つかりませんでした。",
+      cleanIcon:    "✅",
+      badgeRed:     f => `赤 ${f}`,
+      badgeOrange:  f => `オレンジ ${f}`,
+      badgeYellow:  f => `黄 ${f}`,
+      card:         f => `
+        <div class="finding finding-${f.level}">
+          <div class="finding-top">
+            <span class="finding-label ${f.level}">${f.label}</span>
+            <span class="finding-line">${f.line}行目</span>
+          </div>
+          <div class="finding-context">${escHtml(f.context)}</div>
+        </div>`,
+    },
+    dev: {
+      notice:       "[INFO] zero-exfil mode active — all ops client-side, no socket established",
+      noticeIcon:   "⚙️",
+      input:        "STDIN",
+      output:       "STDOUT",
+      clear:        "flush()",
+      scan:         "exec scan()",
+      dropzone:     "// plz D&D your payload here",
+      dropzoneIcon: "📁",
+      placeholder:  "# pipe stdin or paste raw payload\n# supports: .env, .js, .py, .json, .yaml, logs\n\n$ cat .env | s-copy --scan",
+      legendRed:    "[CONFIRMED]  pattern_match=definite",
+      legendOrange: "[SUSPICIOUS] heuristic=var_assignment",
+      legendYellow: "[HEURISTIC]  entropy=high, format=unknown",
+      empty:        "awaiting input... (stdin is empty)",
+      emptyIcon:    "empty",
+      clean:        "[OK] scan complete — 0 matches found",
+      cleanIcon:    "✓",
+      badgeRed:     f => `CONFIRMED:${f}`,
+      badgeOrange:  f => `SUSPICIOUS:${f}`,
+      badgeYellow:  f => `HEURISTIC:${f}`,
+      card:         f => `
+        <div class="finding finding-${f.level}">
+          <div class="finding-top">
+            <span class="finding-label ${f.level}">[MATCH] ${f.id.toUpperCase()}</span>
+            <span class="finding-line">L${f.line}:C${f.col}</span>
+          </div>
+          <div class="finding-context" style="font-size:10px;opacity:.7;">pattern_id=${f.id} &nbsp;|&nbsp; severity=${f.level.toUpperCase()}</div>
+          <div class="finding-context">${escHtml(f.context)}</div>
+        </div>`,
+    },
+  };
+
+  function applyUI(mode) {
+    const u = UI[mode];
+    document.getElementById("notice-text").textContent    = u.notice;
+    document.getElementById("notice-icon").textContent    = u.noticeIcon;
+    document.getElementById("label-input").textContent    = u.input;
+    document.getElementById("label-output").textContent   = u.output;
+    document.getElementById("label-clear").textContent    = u.clear;
+    document.getElementById("label-scan").textContent     = u.scan;
+    document.getElementById("dropzone-text").textContent  = u.dropzone;
+    document.getElementById("dropzone-icon").textContent  = u.dropzoneIcon;
+    document.querySelector(".legend-red").textContent     = u.legendRed;
+    document.querySelector(".legend-orange").textContent  = u.legendOrange;
+    document.querySelector(".legend-yellow").textContent  = u.legendYellow;
+    inputEl.placeholder = u.placeholder;
+  }
+
+  devToggle.addEventListener("click", () => {
+    const isDev = document.body.classList.toggle("dev-mode");
+    devToggle.textContent = isDev ? "🧑‍💻" : "👨‍💻";
+    applyUI(isDev ? "dev" : "normal");
+    if (inputEl.value.trim()) runScan();
+    else renderEmpty();
+  });
+
+  function isDev() { return document.body.classList.contains("dev-mode"); }
+
+  function runScan() {
+    const text = inputEl.value.trim();
+    if (!text) { renderEmpty(); return; }
+    renderResults(detect(text));
+  }
+
+  /* 空状態 */
+  function renderEmpty() {
+    const u = isDev() ? UI.dev : UI.normal;
+    summaryEl.innerHTML = "";
+    resultsEl.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-state-icon">${u.emptyIcon}</span>
+        <p>${u.empty}</p>
+      </div>`;
+  }
+
+  /* 結果描画 */
+  function renderResults(findings) {
+    const u = isDev() ? UI.dev : UI.normal;
+    const counts = { red: 0, orange: 0, yellow: 0 };
+    findings.forEach(f => counts[f.level]++);
+
+    /* サマリーバッジ */
+    summaryEl.innerHTML = [
+      counts.red    ? `<span class="badge badge-red">${u.badgeRed(counts.red)}</span>` : "",
+      counts.orange ? `<span class="badge badge-orange">${u.badgeOrange(counts.orange)}</span>` : "",
+      counts.yellow ? `<span class="badge badge-yellow">${u.badgeYellow(counts.yellow)}</span>` : "",
+    ].join(" ");
+
+    if (findings.length === 0) {
+      document.body.classList.remove("detecting");
+      resultsEl.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-state-icon">${u.cleanIcon}</span>
+          <p>${u.clean}</p>
+        </div>`;
+      return;
+    }
+
+    document.body.classList.add("detecting");
+    resultsEl.innerHTML = findings.map(f => u.card(f)).join("");
+  }
+
+  /* XSS対策 */
+  function escHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+</script>
+
+</body>
+</html>
