@@ -298,6 +298,17 @@ textarea::placeholder { color: #9ca3af; white-space: pre-wrap; }
 .dot-orange { background: #f97316; }
 .dot-yellow { background: #eab308; }
 
+/* キャッチコピー */
+.catchcopy {
+  max-width: 1200px;
+  margin: 16px auto 0;
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+
 /* 安全性の案内 */
 .notice {
   max-width: 1200px;
