@@ -1,4 +1,5 @@
 # SNIFF^^COPY
+https://sniffcopy.oruvanir.com/
 
 > AIにコードを貼る前に。Slackで送る前に。Gitにpushする前に。
 > 
